@@ -62,12 +62,12 @@ class UDPHandler(TransportHandler):
             self.counter += 1
             return data, sender_address
         except TimeoutError as e:
-            print(e)
+            print(f"Timeout occurred while waiting for UDP packet: {e}")
             return bytes(), ""
         except socket.error as error:
             # print error code
             self.no_error_flag = False
-            self.last_error_code = error.errno
+            self.last_error_code = error.errno if error.errno is not None else "Unknown"
             self.last_error_message = str(error)
-            print(f"Error receiving udp packet. Error Code: {error.errno}")
+            print(f"Error receiving UDP packet. Error Code: {self.last_error_code}, Message: {self.last_error_message}")
             return bytes(), ""
