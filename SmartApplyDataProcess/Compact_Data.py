@@ -64,6 +64,25 @@ def calculate_points_within_range(module, angle_min, angle_max, horizontal_dista
             return np.sum(mask)
     return 0
 
+def calculate_frames_to_consider(machine_speed_mph, nozzle_width, scan_frequency=25):
+    """
+    Calculate the number of frames to be considered based on machine speed (in mph) and nozzle width.
+
+    :param machine_speed_mph: Speed of the machine in miles per hour.
+    :param nozzle_width: Width covered by the nozzle in meters.
+    :param scan_frequency: Frequency of the scan in Hz (default is 25 Hz).
+    :return: Number of frames to be considered (rounded up to the nearest integer).
+    """
+    # Convert speed from miles per hour to meters per second
+    machine_speed_mps = machine_speed_mph * 0.44704
+
+    # Time taken to cover the nozzle width at the given speed
+    time_to_cover_nozzle = nozzle_width / machine_speed_mps
+
+    # Number of frames to be considered, rounded up to the nearest integer
+    frames_to_consider = int(np.ceil(scan_frequency * time_to_cover_nozzle))
+
+    return frames_to_consider
 
 if __name__ == "__main__":
     if "UDP" == TRANSPORT_PROTOCOL:
@@ -78,19 +97,35 @@ if __name__ == "__main__":
     ANGLE_MIN = -2.40  # Minimum angle in radians
     ANGLE_MAX = 2.40  # Maximum angle in radians
     HORIZONTAL_DISTANCE_THRESHOLD = 130  # Horizontal distance threshold
+    SEGMENT_PER_FRAME=10
+    POINTS_PER_DEGREE = 4  # Number of points per degree
 
     try:
         while True:  # Continuous data reception loop
-            (segments, frameNumbers, segmentCounters) = receiver.receive_segments(50)
+            SPEED = 5  # Example speed in mph
+            NOZZLE_WIDTH = 0.5
+            number_of_frames = calculate_frames_to_consider(SPEED, NOZZLE_WIDTH)  # Example values
+            total_points = (np.degrees(ANGLE_MAX) - np.degrees(ANGLE_MIN)) * POINTS_PER_DEGREE* number_of_frames
+            detected_points = 0
+            print(f"Total points to consider: {total_points}")
+            print(f"Machine speed: {SPEED} mph")
+            print(f"Nozzle width: {NOZZLE_WIDTH} m")
+            print(f"Angle range: {np.degrees(ANGLE_MIN)} to {np.degrees(ANGLE_MAX)} degrees")
+            print(f"Horizontal distance threshold: {HORIZONTAL_DISTANCE_THRESHOLD} m")
+            print(f"Scan frequency: 25 Hz")
+            print(f"Number of frames to consider: {number_of_frames}")
+            (segments, frameNumbers, segmentCounters) = receiver.receive_segments(number_of_frames*SEGMENT_PER_FRAME)
             for segment in segments:  # Iterate through all segments
-                print("-----------------------------------------------------------------------------------")
-                for module in segment.get("Modules", []):  # Iterate through all modules
+               for module in segment.get("Modules", []):  # Iterate through all modules
                     points_within_range = calculate_points_within_range(
                         module, ANGLE_MIN, ANGLE_MAX, HORIZONTAL_DISTANCE_THRESHOLD
                     )
-                    print(f"Module FrameNumber: {module.get('FrameNumber', 'N/A')}")
-                    print(f"Points within range: {points_within_range}")
-                print("-----------------------------------------------------------------------------------")
+                    detected_points += points_within_range
+            density = detected_points / total_points
+            print(f"Detected points: {detected_points}")
+            print(f"Density: {density:.2f}")
+
+
     except KeyboardInterrupt:
         print("Data reception interrupted by user.")
     finally:
