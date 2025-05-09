@@ -10,3 +10,4 @@ dist/
 .coverage
 report.xml
 reports
+/frame_data.log

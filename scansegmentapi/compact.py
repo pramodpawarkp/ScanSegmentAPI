@@ -393,7 +393,7 @@ class Receiver:
         for i in range(0, nb_segments):
             bytes_received, _ = self.transport_layer.receive_new_scan_segment()
             if self.transport_layer.has_no_error():
-                print(f"Received segment {i}.")
+                #print(f"Received segment {i}.")
                 payload = _verify_and_extract_payload(bytes_received)
                 if payload is None:
                     print("Failed to extract payload from data.", file=sys.stderr)
