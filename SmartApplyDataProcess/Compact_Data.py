@@ -19,6 +19,7 @@ import scansegmentapi.compact as CompactApi
 from scansegmentapi.tcp_handler import TCPHandler
 from scansegmentapi.compact_stream_extractor import CompactStreamExtractor
 from scansegmentapi.udp_handler import UDPHandler
+import time  # Import the time module for measuring processing time
 
 # Port used for data streaming. Enter the port configured in your device.
 PORT = 2115
@@ -99,7 +100,7 @@ if __name__ == "__main__":
     ANGLE_MIN = 0.0  # Minimum angle in radians
     ANGLE_MAX = 1.40  # Maximum angle in radians
     HORIZONTAL_DISTANCE_THRESHOLD = 130  # Horizontal distance threshold
-    SEGMENT_PER_FRAME=10
+    SEGMENT_PER_FRAME = 10
     POINTS_PER_DEGREE = 4  # Number of points per degree
 
     try:
@@ -107,30 +108,36 @@ if __name__ == "__main__":
             SPEED = 5  # Example speed in mph
             NOZZLE_WIDTH = 0.5
             number_of_frames = calculate_frames_to_consider(SPEED, NOZZLE_WIDTH)  # Example values
-            total_points = (np.degrees(ANGLE_MAX) - np.degrees(ANGLE_MIN)) * POINTS_PER_DEGREE* number_of_frames
+            total_points = (np.degrees(ANGLE_MAX) - np.degrees(ANGLE_MIN)) * POINTS_PER_DEGREE * number_of_frames
             detected_points = 0
-            (segments, frameNumbers, segmentCounters) = receiver.receive_segments(number_of_frames*SEGMENT_PER_FRAME)
+
+            # Start measuring processing time
+            start_time = time.time()
+
+            (segments, frameNumbers, segmentCounters) = receiver.receive_segments(number_of_frames * SEGMENT_PER_FRAME)
             for segment in segments:  # Iterate through all segments
-               for module in segment.get("Modules", []):  # Iterate through all modules
+                for module in segment.get("Modules", []):  # Iterate through all modules
                     points_within_range = calculate_points_within_range(
                         module, ANGLE_MIN, ANGLE_MAX, HORIZONTAL_DISTANCE_THRESHOLD
                     )
                     detected_points += points_within_range
+
+            # End measuring processing time
+            end_time = time.time()
+            processing_time = end_time - start_time
+
             density = detected_points / total_points
-            
+
             print(f"Machine speed: {SPEED} mph")
             print(f"Nozzle width: {NOZZLE_WIDTH} m")
             print(f"Scan frequency: 25 Hz")
             print(f"Number of frames to consider: {number_of_frames}")
             print(f"Angle range: {np.degrees(ANGLE_MIN)} to {np.degrees(ANGLE_MAX)} degrees")
-
-            print(f"Total points to consider: {total_points}")           
+            print(f"Total points to consider: {total_points}")
             print(f"Horizontal distance threshold: {HORIZONTAL_DISTANCE_THRESHOLD} mm")
-            
-            
             print(f"Detected points: {detected_points}")
             print(f"Density: {density:.2f}")
-
+            print(f"Processing time: {processing_time:.2f} seconds")
 
     except KeyboardInterrupt:
         print("Data reception interrupted by user.")
